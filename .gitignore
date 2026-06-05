@@ -1,0 +1,17 @@
+# .NET
+InvoiceApi/bin/
+InvoiceApi/obj/
+*.user
+
+# Angular
+invoice-app/node_modules/
+invoice-app/dist/
+invoice-app/.angular/
+invoice-app/render-pdf.mjs
+
+# Misc
+render-pdf.mjs
+node_modules/
+*.xlsx
+*.pdf
+.env
