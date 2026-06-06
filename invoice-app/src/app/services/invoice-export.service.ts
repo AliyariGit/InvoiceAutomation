@@ -4,7 +4,7 @@ import { InvoiceDto } from '../models/invoice.models';
 
 @Injectable({ providedIn: 'root' })
 export class InvoiceExportService {
-  private apiBase = 'http://localhost:5000/api/invoice';
+  private apiBase = '/api/invoice';
 
   constructor(private http: HttpClient) {}
 

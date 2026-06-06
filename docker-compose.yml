@@ -1,0 +1,18 @@
+services:
+  api:
+    build:
+      context: ./InvoiceApi
+      dockerfile: Dockerfile
+    container_name: invoice-api
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ./invoice-app
+      dockerfile: Dockerfile
+    container_name: invoice-web
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    restart: unless-stopped
