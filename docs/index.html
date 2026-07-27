@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Invoice Generator</title>
+<meta name="description" content="Simple invoice form with live preview and print-to-PDF, hosted on GitHub Pages." />
+<style>
+  :root {
+    --navy: #1c396b;
+    --navy-dark: #142a4e;
+    --border: #d1d5db;
+    --bg: #f4f5f7;
+    --text: #111827;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    background: var(--navy);
+    color: #fff;
+    padding: 16px 24px;
+  }
+  header h1 { margin: 0; font-size: 20px; }
+  header p { margin: 4px 0 0; font-size: 13px; opacity: 0.85; }
+  main {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+  }
+  .panel {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .panel h2 { margin-top: 0; font-size: 15px; color: var(--navy); }
+  fieldset { border: 1px solid var(--border); border-radius: 6px; margin-bottom: 12px; }
+  legend { font-size: 12px; color: #6b7280; padding: 0 6px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+  .row > div { flex: 1; min-width: 140px; }
+  label { display: block; font-size: 12px; color: #6b7280; margin-bottom: 3px; }
+  input, textarea {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  input[type="file"] { padding: 3px 0; border: none; }
+  textarea { resize: vertical; min-height: 50px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+  th, td { border: 1px solid var(--border); padding: 4px; text-align: left; font-size: 12px; }
+  th { background: #f0f2f5; }
+  td input { border: none; padding: 4px; }
+  .line-amount { text-align: right; padding: 4px 6px; }
+  .btn {
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .btn:hover { background: var(--navy-dark); }
+  .btn-secondary {
+    background: #fff;
+    color: var(--navy);
+    border: 1px solid var(--navy);
+  }
+  .btn-secondary:hover { background: #eef1f6; }
+  .btn-remove {
+    background: none;
+    border: none;
+    color: #b91c1c;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .actions { display: flex; gap: 8px; margin-top: 10px; align-items: center; }
+  .hint { font-size: 11px; color: #6b7280; }
+
+  /* Preview / printable invoice */
+  #preview {
+    font-size: 13px;
+    background: #eef1f4;
+    border-radius: 8px;
+    padding: 20px;
+  }
+  .inv-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--navy); padding-bottom: 10px; margin-bottom: 14px; }
+  .inv-brand { display: flex; align-items: center; gap: 12px; }
+  .inv-brand img { max-height: 60px; max-width: 90px; object-fit: contain; }
+  .inv-brand-name { font-weight: bold; font-size: 16px; color: var(--navy); line-height: 1.3; }
+  .inv-title { font-size: 26px; font-weight: bold; color: var(--navy); text-align: right; }
+  .inv-meta { display: flex; justify-content: space-between; margin-bottom: 14px; gap: 16px; }
+  .inv-meta div { flex: 1; }
+  .inv-meta .right { text-align: right; }
+  .inv-meta strong { display: block; color: #6b7280; font-size: 11px; text-transform: uppercase; }
+  .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+  .inv-table th, .inv-table td { border: 1px solid var(--border); padding: 6px 8px; font-size: 12px; }
+  .inv-table th { background: var(--navy); color: #fff; text-align: left; }
+  .inv-table td.num { text-align: right; }
+  .inv-totals { margin-left: auto; width: 220px; }
+  .inv-totals div { display: flex; justify-content: space-between; padding: 4px 0; }
+  .inv-totals .grand { font-weight: bold; border-top: 2px solid var(--navy); margin-top: 4px; padding-top: 6px; }
+  .inv-notes { margin-top: 14px; font-size: 12px; color: #374151; white-space: pre-wrap; }
+  .inv-footer { margin-top: 24px; text-align: center; font-size: 11px; color: #6b7280; border-top: 1px solid var(--border); padding-top: 10px; }
+  .inv-footer .thanks { font-weight: bold; color: var(--navy); margin: 2px 0; }
+
+  @media print {
+    header, .form-panel, .actions { display: none !important; }
+    main { display: block; padding: 0; }
+    .panel { border: none; padding: 0; }
+    body { background: #fff; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Invoice Generator</h1>
+  <p>Fill in your business info once, add line items, then print or save as PDF. Your business info is saved on this device for next time.</p>
+</header>
+
+<main>
+  <section class="panel form-panel">
+    <h2>Invoice Details</h2>
+
+    <fieldset>
+      <legend>Your Business (From)</legend>
+      <div class="row">
+        <div><label>Logo</label><input id="logoFile" type="file" accept="image/*" onchange="handleLogo(this)" /></div>
+        <div><label>Business Name</label><input id="fromName" value="REGENBOGEN RENOVATION LTD" /></div>
+      </div>
+      <div class="row">
+        <div><label>Phone</label><input id="fromPhone" placeholder="555-823-1100" /></div>
+        <div><label>Email</label><input id="fromEmail" placeholder="billing@example.com" /></div>
+      </div>
+      <div class="row">
+        <div><label>Business Address (shown in footer)</label><input id="fromAddress" value="7300 Edmonds St &bull; #800 &bull; Burnaby &bull; British Columbia &bull; V3N 0G8" /></div>
+        <div><label>GST / Tax #</label><input id="fromTaxId" value="764786026RT0001" /></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Bill To</legend>
+      <div class="row">
+        <div><label>Client Name</label><input id="toName" value="7T GENERAL CONTRACTING LTD" /></div>
+        <div><label>Client Address</label><input id="toAddress" value="1644 152 ST. SURREY BC V4A4N2" /></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Invoice</legend>
+      <div class="row">
+        <div><label>Invoice #</label><input id="invNumber" value="1305" /></div>
+        <div><label>Date</label><input id="invDate" type="date" value="2025-11-19" /></div>
+        <div><label>Due Date</label><input id="invDue" type="date" /></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Line Items</legend>
+      <table id="linesTable">
+        <thead>
+          <tr><th>Description</th><th style="width:60px">Qty</th><th style="width:80px">Unit Price</th><th style="width:80px">Line Total</th><th style="width:24px"></th></tr>
+        </thead>
+        <tbody id="linesBody"></tbody>
+      </table>
+      <div class="actions">
+        <button class="btn btn-secondary" onclick="addLine()">+ Add Line</button>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Totals & Footer</legend>
+      <div class="row">
+        <div><label>Tax Label</label><input id="taxLabel" value="GST" /></div>
+        <div><label>Tax Rate (%)</label><input id="taxRate" type="number" value="5" min="0" step="0.1" /></div>
+      </div>
+      <div class="row">
+        <div><label>Notes / Payment Terms</label><textarea id="notes" placeholder="Payment due within 30 days."></textarea></div>
+      </div>
+      <div class="row">
+        <div><label>Payment Instructions (footer)</label><input id="payTo" value="Make all checks payable to REGENBOGEN" /></div>
+      </div>
+      <div class="row">
+        <div><label>Thank You Message (footer)</label><input id="thanks" value="Thank you for your business!" /></div>
+      </div>
+    </fieldset>
+
+    <div class="actions">
+      <button class="btn" onclick="window.print()">Print / Save as PDF</button>
+      <span class="hint">Your business info auto-saves in this browser.</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Preview</h2>
+    <div id="preview"></div>
+  </section>
+</main>
+
+<script>
+  let lines = [
+    { desc: '601 west Cordova st.', qty: 1, rate: 36500 },
+    { desc: 'Removing wallpapers from walls', qty: '', rate: '' },
+    { desc: 'Filling holes and mudding the walls', qty: '', rate: '' },
+    { desc: 'sanding and smothing the walls to install wallpapers', qty: '', rate: '' }
+  ];
+
+  function isNoteRow(line) {
+    return line.qty === '' && line.rate === '';
+  }
+  let logoDataUrl = 'assets/regenbogen-logo.jpg';
+
+  const STORAGE_KEY = 'invoiceGenerator.businessInfo';
+  const BUSINESS_FIELDS = ['fromName', 'fromPhone', 'fromEmail', 'fromAddress', 'fromTaxId', 'taxLabel', 'taxRate', 'payTo', 'thanks'];
+
+  function saveBusinessInfo() {
+    const data = {};
+    BUSINESS_FIELDS.forEach(id => data[id] = fieldVal(id));
+    data.logo = logoDataUrl;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
+  function loadBusinessInfo() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    try {
+      const data = JSON.parse(raw);
+      BUSINESS_FIELDS.forEach(id => {
+        if (data[id] !== undefined) document.getElementById(id).value = data[id];
+      });
+      if (data.logo) logoDataUrl = data.logo;
+    } catch (e) { /* ignore corrupt storage */ }
+  }
+
+  function handleLogo(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      logoDataUrl = reader.result;
+      renderPreview();
+      saveBusinessInfo();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function addLine() {
+    lines.push({ desc: '', qty: 1, rate: 0 });
+    renderLines();
+    renderPreview();
+  }
+
+  function removeLine(i) {
+    lines.splice(i, 1);
+    if (lines.length === 0) lines.push({ desc: '', qty: 1, rate: 0 });
+    renderLines();
+    renderPreview();
+  }
+
+  function updateLine(i, field, value) {
+    lines[i][field] = field === 'desc' ? value : (parseFloat(value) || 0);
+    renderPreview();
+    renderAmountCell(i);
+  }
+
+  function renderAmountCell(i) {
+    const cell = document.getElementById('amount-' + i);
+    if (cell) cell.textContent = isNoteRow(lines[i]) ? '' : (lines[i].qty * lines[i].rate).toFixed(2);
+  }
+
+  function renderLines() {
+    const body = document.getElementById('linesBody');
+    body.innerHTML = '';
+    lines.forEach((line, i) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input value="${escapeAttr(line.desc)}" oninput="updateLine(${i},'desc',this.value)" placeholder="Description" /></td>
+        <td><input type="number" value="${line.qty}" min="0" step="1" oninput="updateLine(${i},'qty',this.value)" /></td>
+        <td><input type="number" value="${line.rate}" min="0" step="0.01" oninput="updateLine(${i},'rate',this.value)" /></td>
+        <td class="line-amount" id="amount-${i}">${isNoteRow(line) ? '' : (line.qty * line.rate).toFixed(2)}</td>
+        <td><button class="btn-remove" onclick="removeLine(${i})" title="Remove">&times;</button></td>
+      `;
+      body.appendChild(tr);
+    });
+  }
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function escapeAttr(value) {
+    return escapeHtml(value).replace(/"/g, '&quot;');
+  }
+
+  function fieldVal(id) {
+    return document.getElementById(id).value;
+  }
+
+  function renderPreview() {
+    const subtotal = lines.reduce((sum, l) => sum + l.qty * l.rate, 0);
+    const taxRate = parseFloat(fieldVal('taxRate')) || 0;
+    const taxLabel = fieldVal('taxLabel') || 'Tax';
+    const tax = subtotal * (taxRate / 100);
+    const total = subtotal + tax;
+
+    const rows = lines.map(l => `
+      <tr>
+        <td class="num">${isNoteRow(l) ? '' : l.qty}</td>
+        <td>${escapeHtml(l.desc) || '&mdash;'}</td>
+        <td class="num">${isNoteRow(l) ? '' : Number(l.rate).toFixed(2)}</td>
+        <td class="num">${isNoteRow(l) ? '' : (l.qty * l.rate).toFixed(2)}</td>
+      </tr>
+    `).join('');
+
+    const taxIdLine = fieldVal('fromTaxId') ? `<div><strong>${escapeHtml(taxLabel)} #</strong> ${escapeHtml(fieldVal('fromTaxId'))}</div>` : '';
+    const dueLine = fieldVal('invDue') ? `<div><strong>Due</strong> ${escapeHtml(fieldVal('invDue'))}</div>` : '';
+
+    const footerParts = [fieldVal('payTo'), fieldVal('thanks'), fieldVal('fromAddress')].filter(Boolean);
+    const footer = footerParts.length ? `
+      <div class="inv-footer">
+        ${footerParts.map((line, idx) => `<div class="${idx === 1 ? 'thanks' : ''}">${escapeHtml(line)}</div>`).join('')}
+      </div>` : '';
+
+    document.getElementById('preview').innerHTML = `
+      <div class="inv-header">
+        <div class="inv-brand">
+          ${logoDataUrl ? `<img src="${logoDataUrl}" alt="Logo" />` : ''}
+          <div class="inv-brand-name">${escapeHtml(fieldVal('fromName')) || 'Your Business Name'}</div>
+        </div>
+        <div class="inv-title">Invoice</div>
+      </div>
+      <div class="inv-meta">
+        <div>
+          <strong>To</strong>
+          ${escapeHtml(fieldVal('toName'))}<br />
+          ${escapeHtml(fieldVal('toAddress'))}
+        </div>
+        <div class="right">
+          <div><strong>Date</strong> ${escapeHtml(fieldVal('invDate'))}</div>
+          <div><strong>Invoice #</strong> ${escapeHtml(fieldVal('invNumber'))}</div>
+          ${dueLine}
+          ${taxIdLine}
+        </div>
+      </div>
+      <table class="inv-table">
+        <thead><tr><th>Qty</th><th>Description</th><th>Unit Price</th><th>Line Total</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="inv-totals">
+        <div><span>Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
+        <div><span>${escapeHtml(taxLabel)} (${taxRate}%)</span><span>${tax.toFixed(2)}</span></div>
+        <div class="grand"><span>Total</span><span>${total.toFixed(2)}</span></div>
+      </div>
+      ${fieldVal('notes') ? `<div class="inv-notes"><strong>Notes:</strong><br/>${escapeHtml(fieldVal('notes'))}</div>` : ''}
+      ${footer}
+    `;
+  }
+
+  document.querySelectorAll('input, textarea').forEach(el => {
+    el.addEventListener('input', () => {
+      renderPreview();
+      if (BUSINESS_FIELDS.includes(el.id)) saveBusinessInfo();
+    });
+  });
+
+  loadBusinessInfo();
+  renderLines();
+  renderPreview();
+</script>
+
+</body>
+</html>
