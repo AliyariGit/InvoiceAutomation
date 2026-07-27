@@ -289,17 +289,80 @@
     URL.revokeObjectURL(url);
   }
 
+  const XL_NAVY = '#2e4e52';
+  const XL_TINT = '#ebf0f2';
+  const XL_BORDER = '#d1d5db';
+
+  function buildInvoiceTable() {
+    const subtotal = lines.reduce((sum, l) => sum + l.qty * l.rate, 0);
+    const taxRate = parseFloat(fieldVal('taxRate')) || 0;
+    const taxLabel = fieldVal('taxLabel') || 'Tax';
+    const tax = subtotal * (taxRate / 100);
+    const total = subtotal + tax;
+    const cell = 'padding:6px 8px;border:1px solid ' + XL_BORDER + ';';
+
+    const lineRows = lines.map((l, i) => {
+      const bg = i % 2 === 1 ? XL_TINT : '#ffffff';
+      return `<tr style="background-color:${bg};">
+        <td style="${cell}">${isNoteRow(l) ? '' : l.qty}</td>
+        <td style="${cell}">${escapeHtml(l.desc)}</td>
+        <td style="${cell}text-align:right;">${isNoteRow(l) ? '' : Number(l.rate).toFixed(2)}</td>
+        <td style="${cell}text-align:right;">${isNoteRow(l) ? '' : (l.qty * l.rate).toFixed(2)}</td>
+      </tr>`;
+    }).join('');
+
+    const dueLine = fieldVal('invDue') ? `Due: ${escapeHtml(formatDate(fieldVal('invDue')))}<br/>` : '';
+    const taxIdLine = fieldVal('fromTaxId') ? `${escapeHtml(taxLabel)} #: ${escapeHtml(fieldVal('fromTaxId'))}` : '';
+    const footerLines = [fieldVal('payTo'), fieldVal('thanks'), fieldVal('fromAddress')].filter(Boolean);
+
+    return `<table style="border-collapse:collapse;font-family:Calibri,Arial,sans-serif;font-size:12px;color:${XL_NAVY};width:600px;">
+      <tr>
+        <td colspan="2" style="font-family:Georgia,serif;font-weight:bold;font-size:20px;color:${XL_NAVY};padding:6px 8px;">
+          ${escapeHtml(fieldVal('fromName')) || 'Your Business Name'}${fieldVal('fromNameSub') ? `<br/><span style="font-size:13px;">${escapeHtml(fieldVal('fromNameSub'))}</span>` : ''}
+        </td>
+        <td colspan="2" style="font-family:Georgia,serif;font-weight:bold;font-size:28px;color:${XL_NAVY};text-align:right;padding:6px 8px;">Invoice</td>
+      </tr>
+      <tr><td colspan="4" style="height:10px;line-height:10px;font-size:1px;">&nbsp;</td></tr>
+      <tr>
+        <td colspan="2" style="padding:2px 8px;vertical-align:top;">
+          <strong>To:</strong> ${escapeHtml(fieldVal('toName'))}<br/>
+          ${escapeHtml(fieldVal('toAddress1'))}<br/>
+          ${escapeHtml(fieldVal('toAddress2'))}
+        </td>
+        <td colspan="2" style="padding:2px 8px;text-align:right;vertical-align:top;">
+          <strong>Date:</strong> ${escapeHtml(formatDate(fieldVal('invDate')))}<br/>
+          <strong>Invoice #:</strong> ${escapeHtml(fieldVal('invNumber'))}<br/>
+          ${dueLine}${taxIdLine}
+        </td>
+      </tr>
+      <tr><td colspan="4" style="height:12px;line-height:12px;font-size:1px;">&nbsp;</td></tr>
+      <tr style="background-color:${XL_NAVY};color:#ffffff;font-weight:bold;">
+        <td style="${cell}">Qty</td>
+        <td style="${cell}">Description</td>
+        <td style="${cell}">Unit Price</td>
+        <td style="${cell}">Line Total</td>
+      </tr>
+      ${lineRows}
+      <tr><td colspan="4" style="height:12px;line-height:12px;font-size:1px;">&nbsp;</td></tr>
+      <tr><td colspan="2"></td><td style="padding:4px 8px;font-weight:bold;">Subtotal</td><td style="padding:4px 8px;text-align:right;">${subtotal.toFixed(2)}</td></tr>
+      <tr><td colspan="2"></td><td style="padding:4px 8px;font-weight:bold;">${escapeHtml(taxLabel)} (${taxRate}%)</td><td style="padding:4px 8px;text-align:right;">${tax.toFixed(2)}</td></tr>
+      <tr><td colspan="2"></td><td style="padding:4px 8px;font-weight:bold;border-top:2px solid ${XL_NAVY};">Total</td><td style="padding:4px 8px;text-align:right;font-weight:bold;border-top:2px solid ${XL_NAVY};">${total.toFixed(2)}</td></tr>
+      ${fieldVal('notes') ? `<tr><td colspan="4" style="padding:12px 8px 2px;"><strong>Notes:</strong><br/>${escapeHtml(fieldVal('notes'))}</td></tr>` : ''}
+      <tr><td colspan="4" style="height:16px;line-height:16px;font-size:1px;">&nbsp;</td></tr>
+      ${footerLines.map(l => `<tr><td colspan="4" style="text-align:center;padding:2px 8px;font-size:10px;">${escapeHtml(l)}</td></tr>`).join('')}
+    </table>`;
+  }
+
   function buildExportDocument(extraHead) {
-    const styles = document.querySelector('style').textContent;
-    const body = document.getElementById('preview').innerHTML;
     return `<!doctype html>
-      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
-      <head><meta charset="utf-8" />${extraHead || ''}<style>${styles}</style></head>
-      <body>${body}</body></html>`;
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+      <head><meta charset="utf-8" />${extraHead || ''}</head>
+      <body>${buildInvoiceTable()}</body></html>`;
   }
 
   function exportExcel() {
-    const html = buildExportDocument('');
+    const excelHead = '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Invoice</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->';
+    const html = buildExportDocument(excelHead);
     const blob = new Blob(['﻿', html], { type: 'application/vnd.ms-excel' });
     downloadBlob(blob, `Invoice_${fieldVal('invNumber') || 'draft'}.xls`);
   }
