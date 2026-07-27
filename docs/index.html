@@ -126,6 +126,7 @@
   .inv-totals div { display: grid; grid-template-columns: 1fr auto; column-gap: 12px; padding: 4px 10px; }
   .inv-totals div span:first-child { text-align: right; }
   .inv-totals div span:last-child { text-align: right; }
+  .inv-totals div:nth-child(even) { background: #ffffff; }
   .inv-totals .grand { font-weight: bold; margin-top: 4px; padding-top: 6px; }
   .inv-notes { margin-top: 14px; font-size: 12px; white-space: pre-wrap; }
   .inv-footer { margin-top: 28px; text-align: center; font-size: 10.3px; padding-top: 12px; }
@@ -369,9 +370,9 @@
       </tr>
       ${lineRows}
       <tr><td colspan="4" style="height:12px;line-height:12px;font-size:1px;">&nbsp;</td></tr>
-      <tr><td colspan="2"></td><td style="padding:4px 8px;font-weight:bold;">Subtotal</td><td style="padding:4px 8px;text-align:right;">${subtotal.toFixed(2)}</td></tr>
-      <tr><td colspan="2"></td><td style="padding:4px 8px;font-weight:bold;">${escapeHtml(taxLabel)} (${taxRate}%)</td><td style="padding:4px 8px;text-align:right;">${tax.toFixed(2)}</td></tr>
-      <tr><td colspan="2"></td><td style="padding:4px 8px;font-weight:bold;border-top:2px solid ${XL_NAVY};">Total</td><td style="padding:4px 8px;text-align:right;font-weight:bold;border-top:2px solid ${XL_NAVY};">${total.toFixed(2)}</td></tr>
+      <tr style="background-color:#ffffff;"><td colspan="2"></td><td style="padding:4px 8px;font-weight:bold;">Subtotal</td><td style="padding:4px 8px;text-align:right;">${subtotal.toFixed(2)}</td></tr>
+      <tr style="background-color:${XL_TINT};"><td colspan="2"></td><td style="padding:4px 8px;font-weight:bold;">${escapeHtml(taxLabel)} (${taxRate}%)</td><td style="padding:4px 8px;text-align:right;">${tax.toFixed(2)}</td></tr>
+      <tr style="background-color:#ffffff;"><td colspan="2"></td><td style="padding:4px 8px;font-weight:bold;border-top:2px solid ${XL_NAVY};">Total</td><td style="padding:4px 8px;text-align:right;font-weight:bold;border-top:2px solid ${XL_NAVY};">${total.toFixed(2)}</td></tr>
       ${fieldVal('notes') ? `<tr><td colspan="4" style="padding:12px 8px 2px;"><strong>Notes:</strong><br/>${escapeHtml(fieldVal('notes'))}</td></tr>` : ''}
       <tr><td colspan="4" style="height:16px;line-height:16px;font-size:1px;">&nbsp;</td></tr>
       ${footerLines.map(l => `<tr><td colspan="4" style="text-align:center;padding:2px 8px;font-size:10px;">${escapeHtml(l)}</td></tr>`).join('')}
