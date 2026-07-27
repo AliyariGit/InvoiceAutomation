@@ -394,11 +394,193 @@
     downloadBlob(blob, `Invoice_${fieldVal('invNumber') || 'draft'}.xls`);
   }
 
+  let docxLibPromise = null;
+  function loadDocxLibrary() {
+    if (window.docx) return Promise.resolve(window.docx);
+    if (docxLibPromise) return docxLibPromise;
+    docxLibPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/docx@9.7.1/dist/index.umd.cjs';
+      script.onload = () => resolve(window.docx);
+      script.onerror = () => { docxLibPromise = null; reject(new Error('Failed to load docx library')); };
+      document.head.appendChild(script);
+    });
+    return docxLibPromise;
+  }
+
   async function exportWord() {
-    const wordHead = '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->';
-    const html = await buildExportDocument(wordHead);
-    const blob = new Blob(['﻿', html], { type: 'application/msword' });
-    downloadBlob(blob, `Invoice_${fieldVal('invNumber') || 'draft'}.doc`);
+    let D;
+    try {
+      D = await loadDocxLibrary();
+    } catch (e) {
+      alert('Could not load the Word export library. Check your internet connection and try again.');
+      return;
+    }
+
+    const {
+      Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, ImageRun,
+      AlignmentType, WidthType, TableBorders, VerticalAlignTable, BorderStyle,
+    } = D;
+
+    const subtotal = lines.reduce((sum, l) => sum + l.qty * l.rate, 0);
+    const taxRate = parseFloat(fieldVal('taxRate')) || 0;
+    const taxLabel = fieldVal('taxLabel') || 'Tax';
+    const tax = subtotal * (taxRate / 100);
+    const total = subtotal + tax;
+
+    const NAVY = '2E4E52';
+    const TINT = 'EBF0F2';
+    const thinBorder = { style: BorderStyle.SINGLE, size: 2, color: 'D1D5DB' };
+    const cellBorders = { top: thinBorder, bottom: thinBorder, left: thinBorder, right: thinBorder };
+
+    let logoImage = null;
+    const resolvedLogo = await resolveLogoDataUrl();
+    if (resolvedLogo) {
+      try {
+        const resp = await fetch(resolvedLogo);
+        const buf = await resp.arrayBuffer();
+        logoImage = new ImageRun({ type: 'jpg', data: buf, transformation: { width: 60, height: 60 } });
+      } catch (e) { /* skip logo if it can't be fetched */ }
+    }
+
+    const headerTable = new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: TableBorders.NONE,
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              width: { size: 12, type: WidthType.PERCENTAGE },
+              verticalAlign: VerticalAlignTable.CENTER,
+              children: [new Paragraph({ children: logoImage ? [logoImage] : [] })],
+            }),
+            new TableCell({
+              width: { size: 48, type: WidthType.PERCENTAGE },
+              verticalAlign: VerticalAlignTable.CENTER,
+              children: [
+                new Paragraph({ children: [new TextRun({ text: fieldVal('fromName') || 'Your Business Name', bold: true, size: 32, font: 'Georgia', color: NAVY })] }),
+                ...(fieldVal('fromNameSub') ? [new Paragraph({ children: [new TextRun({ text: fieldVal('fromNameSub'), bold: true, size: 22, font: 'Georgia', color: NAVY })] })] : []),
+              ],
+            }),
+            new TableCell({
+              width: { size: 40, type: WidthType.PERCENTAGE },
+              verticalAlign: VerticalAlignTable.CENTER,
+              children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: 'Invoice', bold: true, size: 56, font: 'Georgia', color: NAVY })] })],
+            }),
+          ],
+        }),
+      ],
+    });
+
+    const dueParas = fieldVal('invDue') ? [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `Due: ${formatDate(fieldVal('invDue'))}`, color: NAVY })] })] : [];
+    const taxIdParas = fieldVal('fromTaxId') ? [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `${taxLabel} #: ${fieldVal('fromTaxId')}`, color: NAVY })] })] : [];
+
+    const metaTable = new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: TableBorders.NONE,
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              width: { size: 60, type: WidthType.PERCENTAGE },
+              children: [
+                new Paragraph({ children: [new TextRun({ text: 'To: ', bold: true, color: NAVY }), new TextRun({ text: fieldVal('toName'), color: NAVY })] }),
+                new Paragraph({ children: [new TextRun({ text: fieldVal('toAddress1'), color: NAVY })] }),
+                new Paragraph({ children: [new TextRun({ text: fieldVal('toAddress2'), color: NAVY })] }),
+              ],
+            }),
+            new TableCell({
+              width: { size: 40, type: WidthType.PERCENTAGE },
+              children: [
+                new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `Date: ${formatDate(fieldVal('invDate'))}`, color: NAVY })] }),
+                new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `Invoice #: ${fieldVal('invNumber')}`, color: NAVY })] }),
+                ...dueParas,
+                ...taxIdParas,
+              ],
+            }),
+          ],
+        }),
+      ],
+    });
+
+    const headerRow = new TableRow({
+      tableHeader: true,
+      children: ['Qty', 'Description', 'Unit Price', 'Line Total'].map(text =>
+        new TableCell({
+          shading: { fill: NAVY },
+          borders: cellBorders,
+          children: [new Paragraph({ children: [new TextRun({ text, bold: true, color: 'FFFFFF' })] })],
+        })
+      ),
+    });
+
+    const lineRows = lines.map((l, i) => {
+      const bg = i % 2 === 1 ? TINT : 'FFFFFF';
+      const amt = isNoteRow(l) ? '' : (l.qty * l.rate).toFixed(2);
+      const qtyText = isNoteRow(l) ? '' : String(l.qty);
+      const rateText = isNoteRow(l) ? '' : Number(l.rate).toFixed(2);
+      return new TableRow({
+        children: [
+          new TableCell({ shading: { fill: bg }, borders: cellBorders, children: [new Paragraph(qtyText)] }),
+          new TableCell({ shading: { fill: bg }, borders: cellBorders, children: [new Paragraph(l.desc || '')] }),
+          new TableCell({ shading: { fill: bg }, borders: cellBorders, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun(rateText)] })] }),
+          new TableCell({ shading: { fill: bg }, borders: cellBorders, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun(amt)] })] }),
+        ],
+      });
+    });
+
+    const lineItemsTable = new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [headerRow, ...lineRows],
+    });
+
+    function totalsRow(label, value, bg, bold) {
+      return new TableRow({
+        children: [
+          new TableCell({ borders: TableBorders.NONE, width: { size: 60, type: WidthType.PERCENTAGE }, shading: { fill: bg }, children: [new Paragraph('')] }),
+          new TableCell({ borders: TableBorders.NONE, shading: { fill: bg }, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: label, bold, color: NAVY })] })] }),
+          new TableCell({ borders: TableBorders.NONE, shading: { fill: bg }, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: value, bold, color: NAVY })] })] }),
+        ],
+      });
+    }
+
+    const totalsTable = new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: TableBorders.NONE,
+      rows: [
+        totalsRow('Subtotal', subtotal.toFixed(2), 'FFFFFF', false),
+        totalsRow(`${taxLabel} (${taxRate}%)`, tax.toFixed(2), TINT, false),
+        totalsRow('Total', total.toFixed(2), 'FFFFFF', true),
+      ],
+    });
+
+    const notesParas = fieldVal('notes') ? [
+      new Paragraph({ spacing: { before: 200 }, children: [new TextRun({ text: 'Notes:', bold: true, color: NAVY })] }),
+      new Paragraph({ children: [new TextRun({ text: fieldVal('notes'), color: NAVY })] }),
+    ] : [];
+
+    const footerLines = [fieldVal('payTo'), fieldVal('thanks'), fieldVal('fromAddress')].filter(Boolean);
+    const footerParas = footerLines.map(line => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 100 }, children: [new TextRun({ text: line, size: 18, color: NAVY })] }));
+
+    const doc = new Document({
+      sections: [{
+        children: [
+          headerTable,
+          new Paragraph(''),
+          metaTable,
+          new Paragraph(''),
+          lineItemsTable,
+          new Paragraph(''),
+          totalsTable,
+          ...notesParas,
+          new Paragraph(''),
+          ...footerParas,
+        ],
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    downloadBlob(blob, `Invoice_${fieldVal('invNumber') || 'draft'}.docx`);
   }
 
   function addLine() {
