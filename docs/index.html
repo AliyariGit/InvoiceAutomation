@@ -111,9 +111,11 @@
   .inv-brand-name .sub { font-size: 13px; line-height: 1.2; }
   .inv-title { font-family: var(--serif); font-size: 34px; font-weight: bold; color: var(--navy); text-align: right; }
   .inv-meta { display: flex; justify-content: space-between; margin-bottom: 18px; gap: 16px; }
-  .inv-meta .to-block > div, .inv-meta .meta-block > div { margin-bottom: 2px; }
+  .inv-meta .to-block > div { margin-bottom: 2px; }
   .inv-meta .to-block .indent { margin-left: 32px; }
-  .inv-meta .meta-block { text-align: right; }
+  .inv-meta .meta-block { display: grid; grid-template-columns: max-content max-content; column-gap: 8px; row-gap: 2px; justify-content: end; align-self: start; }
+  .inv-meta .meta-block .mlabel { text-align: right; font-weight: bold; color: var(--navy); }
+  .inv-meta .meta-block .mvalue { text-align: left; }
   .inv-meta strong { color: var(--navy); margin-right: 6px; }
   .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; background: #fff; }
   .inv-table th, .inv-table td { border: none; padding: 7px 10px; font-size: 12.3px; }
@@ -352,8 +354,9 @@
       </tr>
     `).join('');
 
-    const taxIdLine = fieldVal('fromTaxId') ? `<div><strong>${escapeHtml(taxLabel)} #</strong> ${escapeHtml(fieldVal('fromTaxId'))}</div>` : '';
-    const dueLine = fieldVal('invDue') ? `<div><strong>Due:</strong> ${escapeHtml(formatDate(fieldVal('invDue')))}</div>` : '';
+    const metaRow = (label, value) => `<span class="mlabel">${escapeHtml(label)}</span><span class="mvalue">${escapeHtml(value)}</span>`;
+    const taxIdLine = fieldVal('fromTaxId') ? metaRow(`${taxLabel} #`, fieldVal('fromTaxId')) : '';
+    const dueLine = fieldVal('invDue') ? metaRow('Due:', formatDate(fieldVal('invDue'))) : '';
 
     const footerParts = [fieldVal('payTo'), fieldVal('thanks'), fieldVal('fromAddress')].filter(Boolean);
     const footer = footerParts.length ? `
@@ -379,8 +382,8 @@
           <div class="indent">${escapeHtml(fieldVal('toAddress2'))}</div>
         </div>
         <div class="meta-block">
-          <div><strong>Date:</strong> ${escapeHtml(formatDate(fieldVal('invDate')))}</div>
-          <div><strong>Invoice #:</strong> ${escapeHtml(fieldVal('invNumber'))}</div>
+          ${metaRow('Date:', formatDate(fieldVal('invDate')))}
+          ${metaRow('Invoice #:', fieldVal('invNumber'))}
           ${dueLine}
           ${taxIdLine}
         </div>
