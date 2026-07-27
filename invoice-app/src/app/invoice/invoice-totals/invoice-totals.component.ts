@@ -11,6 +11,12 @@ import { CommonModule } from '@angular/common';
         <span>Subtotal</span>
         <span>{{ subtotal | number:'1.2-2' }}</span>
       </div>
+      @if (discount > 0) {
+        <div class="row discount">
+          <span>Discount ({{ discount | number:'1.0-2' }}%)</span>
+          <span>− {{ discountAmt | number:'1.2-2' }}</span>
+        </div>
+      }
       <div class="row">
         <span>Tax ({{ taxRate | number:'1.0-2' }}%)</span>
         <span>{{ tax | number:'1.2-2' }}</span>
@@ -31,6 +37,7 @@ import { CommonModule } from '@angular/common';
       padding: .3rem .5rem; font-size: .9rem;
     }
     .row span:last-child { font-family: monospace; }
+    .discount { color: #c00; }
     .grand {
       background: #1C396B; color: #fff;
       border-radius: 4px; font-weight: 700; font-size: 1rem;
@@ -40,7 +47,9 @@ import { CommonModule } from '@angular/common';
 export class InvoiceTotalsComponent {
   @Input() subtotal = 0;
   @Input() taxRate = 0;
+  @Input() discount = 0;
 
-  get tax(): number { return this.subtotal * this.taxRate / 100; }
-  get grand(): number { return this.subtotal + this.tax; }
+  get discountAmt(): number { return +(this.subtotal * this.discount / 100).toFixed(2); }
+  get tax(): number { return +((this.subtotal - this.discountAmt) * this.taxRate / 100).toFixed(2); }
+  get grand(): number { return +(this.subtotal - this.discountAmt + this.tax).toFixed(2); }
 }

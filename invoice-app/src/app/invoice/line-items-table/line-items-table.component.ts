@@ -35,6 +35,12 @@ function blankLine(): LineItemDto {
                       [ngModel]="getField(line, col.field)"
                       (ngModelChange)="setField(line, col.field, $event, i)"
                     />
+                  } @else if (col.type === 'date') {
+                    <input
+                      type="date"
+                      [ngModel]="getField(line, col.field)"
+                      (ngModelChange)="setField(line, col.field, $event, i)"
+                    />
                   } @else {
                     <input
                       type="text"
@@ -63,7 +69,7 @@ function blankLine(): LineItemDto {
     }
     td { padding: .3rem .4rem; border-bottom: 1px solid #eee; vertical-align: middle; }
     tr:nth-child(even) td { background: #f5f7fb; }
-    input[type=text], input[type=number] {
+    input[type=text], input[type=number], input[type=date] {
       width: 100%; box-sizing: border-box;
       border: 1px solid #ddd; border-radius: 3px; padding: .25rem .4rem;
       font-size: .88rem;

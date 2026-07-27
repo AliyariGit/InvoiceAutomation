@@ -1,6 +1,6 @@
-# ContractorInvoice
+# InvoiceAutomation
 
-A full-stack invoice generation system for construction contractors. Fill in job details, add line items, and export professional invoices as **Excel (.xlsx)** or **PDF** — no login required.
+A lightweight invoice generator for contractors and service providers. The app now supports an English-only static experience that can be hosted on GitHub Pages, with editable branding, light/dark mode, and a browser-based export flow.
 
 ![Invoice UI](docs/assets/screenshot-form.png)
 

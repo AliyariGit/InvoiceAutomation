@@ -4,18 +4,41 @@ export type InvoiceType =
   | 'Combined'
   | 'FixedPrice'
   | 'UnitPrice'
-  | 'HourlyDaily';
+  | 'HourlyDaily'
+  | 'AnyTime'
+  | 'AnyType';
 
 export interface ContractorInfo {
   name: string;
+  address: string;
+  city: string;
+  stateZip: string;
   phone: string;
   email: string;
+  licenseNo: string;
+  taxId: string;
+  website: string;
 }
 
 export interface ClientInfo {
   name: string;
+  contactPerson: string;
+  address: string;
+  cityStateZip: string;
+  phone: string;
+  email: string;
   projectName: string;
   siteAddress: string;
+  poNumber: string;
+}
+
+export interface PaymentInfo {
+  methods: string;
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  routingNumber: string;
+  instructions: string;
 }
 
 export interface LineItemDto {
@@ -24,6 +47,7 @@ export interface LineItemDto {
   supplier?: string;
   unit?: string;
   type?: string;
+  serviceDate?: string;
   qty: number;
   rate: number;
   amount: number;
@@ -33,18 +57,22 @@ export interface InvoiceDto {
   invoiceNumber: string;
   date: string;
   dueDate: string;
+  paymentTerms: string;
+  jobNumber: string;
   invoiceType: InvoiceType;
   from: ContractorInfo;
   to: ClientInfo;
   lines: LineItemDto[];
+  discount: number;
   taxRate: number;
   notes: string;
+  payment: PaymentInfo;
 }
 
 export interface ColumnDef {
   field: keyof LineItemDto | string;
   label: string;
-  type: 'text' | 'number';
+  type: 'text' | 'number' | 'date';
   width?: string;
 }
 
@@ -87,5 +115,19 @@ export const INVOICE_TYPE_COLUMNS: Record<InvoiceType, ColumnDef[]> = {
     { field: 'qty', label: 'Days', type: 'number', width: '15%' },
     { field: 'rate', label: 'Rate/day', type: 'number', width: '15%' },
     { field: 'amount', label: 'Amount', type: 'number', width: '20%' },
+  ],
+  AnyTime: [
+    { field: 'serviceDate', label: 'Date', type: 'date', width: '18%' },
+    { field: 'description', label: 'Description', type: 'text', width: '32%' },
+    { field: 'qty', label: 'Qty / Hrs', type: 'number', width: '13%' },
+    { field: 'rate', label: 'Rate', type: 'number', width: '13%' },
+    { field: 'amount', label: 'Amount', type: 'number', width: '24%' },
+  ],
+  AnyType: [
+    { field: 'description', label: 'Description', type: 'text', width: '30%' },
+    { field: 'type', label: 'Category', type: 'text', width: '20%' },
+    { field: 'qty', label: 'Qty', type: 'number', width: '13%' },
+    { field: 'rate', label: 'Rate', type: 'number', width: '13%' },
+    { field: 'amount', label: 'Amount', type: 'number', width: '24%' },
   ],
 };

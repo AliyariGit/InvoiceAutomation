@@ -56,6 +56,8 @@ export class InvoiceTypeSelectorComponent {
     { value: 'FixedPrice', label: 'Fixed Price', hint: 'Flat project amount' },
     { value: 'UnitPrice', label: 'Unit Price', hint: 'Unit · Qty · Price/unit' },
     { value: 'HourlyDaily', label: 'Hourly/Daily', hint: 'Worker · Days · Rate/day' },
+    { value: 'AnyTime', label: 'Any Time', hint: 'Date · Description · Qty · Rate' },
+    { value: 'AnyType', label: 'Any Type', hint: 'Description · Category · Qty · Rate' },
   ];
 
   select(type: InvoiceType): void {
