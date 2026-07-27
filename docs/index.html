@@ -136,6 +136,11 @@
     main { display: block; padding: 0; }
     .panel { border: none; padding: 0; }
     body { background: #fff; }
+    * {
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      color-adjust: exact !important;
+    }
   }
 </style>
 </head>
@@ -293,7 +298,24 @@
   const XL_TINT = '#ebf0f2';
   const XL_BORDER = '#d1d5db';
 
-  function buildInvoiceTable() {
+  async function resolveLogoDataUrl() {
+    if (!logoDataUrl) return '';
+    if (logoDataUrl.startsWith('data:')) return logoDataUrl;
+    try {
+      const resp = await fetch(logoDataUrl);
+      const blob = await resp.blob();
+      return await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function buildInvoiceTable(logoForExport) {
     const subtotal = lines.reduce((sum, l) => sum + l.qty * l.rate, 0);
     const taxRate = parseFloat(fieldVal('taxRate')) || 0;
     const taxLabel = fieldVal('taxLabel') || 'Tax';
@@ -315,9 +337,12 @@
     const taxIdLine = fieldVal('fromTaxId') ? `${escapeHtml(taxLabel)} #: ${escapeHtml(fieldVal('fromTaxId'))}` : '';
     const footerLines = [fieldVal('payTo'), fieldVal('thanks'), fieldVal('fromAddress')].filter(Boolean);
 
+    const logoCell = `<td style="padding:6px 8px;width:70px;">${logoForExport ? `<img src="${logoForExport}" width="60" height="60" style="display:block;" />` : ''}</td>`;
+
     return `<table style="border-collapse:collapse;font-family:Calibri,Arial,sans-serif;font-size:12px;color:${XL_NAVY};width:600px;">
       <tr>
-        <td colspan="2" style="font-family:Georgia,serif;font-weight:bold;font-size:20px;color:${XL_NAVY};padding:6px 8px;">
+        ${logoCell}
+        <td style="font-family:Georgia,serif;font-weight:bold;font-size:20px;color:${XL_NAVY};padding:6px 8px;vertical-align:middle;">
           ${escapeHtml(fieldVal('fromName')) || 'Your Business Name'}${fieldVal('fromNameSub') ? `<br/><span style="font-size:13px;">${escapeHtml(fieldVal('fromNameSub'))}</span>` : ''}
         </td>
         <td colspan="2" style="font-family:Georgia,serif;font-weight:bold;font-size:28px;color:${XL_NAVY};text-align:right;padding:6px 8px;">Invoice</td>
@@ -353,23 +378,24 @@
     </table>`;
   }
 
-  function buildExportDocument(extraHead) {
+  async function buildExportDocument(extraHead) {
+    const logoForExport = await resolveLogoDataUrl();
     return `<!doctype html>
       <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
       <head><meta charset="utf-8" />${extraHead || ''}</head>
-      <body>${buildInvoiceTable()}</body></html>`;
+      <body>${buildInvoiceTable(logoForExport)}</body></html>`;
   }
 
-  function exportExcel() {
+  async function exportExcel() {
     const excelHead = '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Invoice</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->';
-    const html = buildExportDocument(excelHead);
+    const html = await buildExportDocument(excelHead);
     const blob = new Blob(['﻿', html], { type: 'application/vnd.ms-excel' });
     downloadBlob(blob, `Invoice_${fieldVal('invNumber') || 'draft'}.xls`);
   }
 
-  function exportWord() {
+  async function exportWord() {
     const wordHead = '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->';
-    const html = buildExportDocument(wordHead);
+    const html = await buildExportDocument(wordHead);
     const blob = new Blob(['﻿', html], { type: 'application/msword' });
     downloadBlob(blob, `Invoice_${fieldVal('invNumber') || 'draft'}.doc`);
   }
