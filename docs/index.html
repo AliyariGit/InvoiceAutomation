@@ -330,6 +330,14 @@
     return document.getElementById(id).value;
   }
 
+  function formatDate(isoValue) {
+    if (!isoValue) return '';
+    const [y, m, d] = isoValue.split('-').map(Number);
+    if (!y || !m || !d) return isoValue;
+    const date = new Date(y, m - 1, d);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
   function renderPreview() {
     const subtotal = lines.reduce((sum, l) => sum + l.qty * l.rate, 0);
     const taxRate = parseFloat(fieldVal('taxRate')) || 0;
@@ -347,7 +355,7 @@
     `).join('');
 
     const taxIdLine = fieldVal('fromTaxId') ? `<div class="field"><strong>${escapeHtml(taxLabel)} #</strong> ${escapeHtml(fieldVal('fromTaxId'))}</div>` : '';
-    const dueLine = fieldVal('invDue') ? `<div class="field"><strong>Due:</strong> ${escapeHtml(fieldVal('invDue'))}</div>` : '';
+    const dueLine = fieldVal('invDue') ? `<div class="field"><strong>Due:</strong> ${escapeHtml(formatDate(fieldVal('invDue')))}</div>` : '';
 
     const footerParts = [fieldVal('payTo'), fieldVal('thanks'), fieldVal('fromAddress')].filter(Boolean);
     const footer = footerParts.length ? `
@@ -373,7 +381,7 @@
           <div>${escapeHtml(fieldVal('toAddress2'))}</div>
         </div>
         <div class="meta-block">
-          <div class="field"><strong>Date:</strong> ${escapeHtml(fieldVal('invDate'))}</div>
+          <div class="field"><strong>Date:</strong> ${escapeHtml(formatDate(fieldVal('invDate')))}</div>
           <div class="field"><strong>Invoice #:</strong> ${escapeHtml(fieldVal('invNumber'))}</div>
           ${dueLine}
           ${taxIdLine}
