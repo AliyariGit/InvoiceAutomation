@@ -219,6 +219,10 @@
 
     <div class="actions">
       <button class="btn" onclick="window.print()">Print / Save as PDF</button>
+      <button class="btn btn-secondary" onclick="exportExcel()">Export to Excel</button>
+      <button class="btn btn-secondary" onclick="exportWord()">Export to Word</button>
+    </div>
+    <div class="actions">
       <span class="hint">Your business info auto-saves in this browser.</span>
     </div>
   </section>
@@ -274,6 +278,37 @@
       saveBusinessInfo();
     };
     reader.readAsDataURL(file);
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function buildExportDocument(extraHead) {
+    const styles = document.querySelector('style').textContent;
+    const body = document.getElementById('preview').innerHTML;
+    return `<!doctype html>
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+      <head><meta charset="utf-8" />${extraHead || ''}<style>${styles}</style></head>
+      <body>${body}</body></html>`;
+  }
+
+  function exportExcel() {
+    const html = buildExportDocument('');
+    const blob = new Blob(['﻿', html], { type: 'application/vnd.ms-excel' });
+    downloadBlob(blob, `Invoice_${fieldVal('invNumber') || 'draft'}.xls`);
+  }
+
+  function exportWord() {
+    const wordHead = '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->';
+    const html = buildExportDocument(wordHead);
+    const blob = new Blob(['﻿', html], { type: 'application/msword' });
+    downloadBlob(blob, `Invoice_${fieldVal('invNumber') || 'draft'}.doc`);
   }
 
   function addLine() {
