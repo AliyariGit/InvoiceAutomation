@@ -245,9 +245,9 @@
 <script>
   let lines = [
     { desc: '601 west Cordova st.', qty: 1, rate: 36500 },
-    { desc: 'Removing wallpapers from walls', qty: '', rate: '' },
-    { desc: 'Filling holes and mudding the walls', qty: '', rate: '' },
-    { desc: 'sanding and smothing the walls to install wallpapers', qty: '', rate: '' }
+    { desc: '', qty: '', rate: '' },
+    { desc: '', qty: '', rate: '' },
+    { desc: '', qty: '', rate: '' }
   ];
 
   function isNoteRow(line) {
@@ -660,7 +660,7 @@
     const rows = lines.map(l => `
       <tr>
         <td class="num">${isNoteRow(l) ? '' : l.qty}</td>
-        <td>${escapeHtml(l.desc) || '&mdash;'}</td>
+        <td>${escapeHtml(l.desc)}</td>
         <td class="num">${isNoteRow(l) ? '' : Number(l.rate).toFixed(2)}</td>
         <td class="num">${isNoteRow(l) ? '' : (l.qty * l.rate).toFixed(2)}</td>
       </tr>
