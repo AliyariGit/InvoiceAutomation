@@ -117,9 +117,12 @@
   .inv-meta .meta-block .mlabel { text-align: right; font-weight: bold; color: var(--navy); }
   .inv-meta .meta-block .mvalue { text-align: left; }
   .inv-meta strong { color: var(--navy); margin-right: 6px; }
-  .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; background: #fff; }
+  .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 18px; background: #fff; table-layout: fixed; }
   .inv-table th, .inv-table td { border: none; padding: 7px 10px; font-size: 12.3px; }
-  .inv-table th { background: var(--navy); color: #fff; text-align: left; }
+  .inv-table th { background: var(--navy); color: #fff; text-align: left; white-space: nowrap; }
+  .inv-table th:nth-child(1) { width: 8%; }
+  .inv-table th:nth-child(2) { width: 52%; }
+  .inv-table th:nth-child(3), .inv-table th:nth-child(4) { width: 20%; }
   .inv-table td.num { text-align: right; }
   .inv-table tbody tr:nth-child(even) { background: var(--panel-tint); }
   .inv-totals { margin-left: auto; width: 220px; }
